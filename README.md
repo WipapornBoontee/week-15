@@ -1,59 +1,147 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ใบงานที่ 15: พัฒนาระบบ RESTful Blog API พร้อมระบบยืนยันตัวตนด้วย Laravel Sanctum
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+คู่มือการทดสอบและเอกสารอ้างอิงตามสไลด์การเรียนรู้ สัปดาห์ที่ 15
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📌 สรุปขั้นตอนที่ดำเนินการในโปรเจกต์
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. **ติดตั้ง API Scaffolding & Laravel Sanctum**:
+   - รันคำสั่ง `php artisan install:api`
+   - สร้างตาราง `personal_access_tokens` ผ่าน Migration เรียบร้อย
+2. **User Model Trait**:
+   - เพิ่ม `use Laravel\Sanctum\HasApiTokens;` ภายใน [User.php](file:///c:/Users/MASTER/Documents/GitHub/week-15/app/Models/User.php)
+3. **ระบบยืนยันตัวตน (Authentication)**:
+   - สร้าง [AuthController.php](file:///c:/Users/MASTER/Documents/GitHub/week-15/app/Http/Controllers/Api/AuthController.php) รองรับ `register`, `login`, และ `logout`
+4. **Blog CRUD API & Resource Transformer**:
+   - สร้าง [BlogResource.php](file:///c:/Users/MASTER/Documents/GitHub/week-15/app/Http/Resources/BlogResource.php) จัด Format วันที่ `created_at` / `updated_at` เป็น `Y-m-d H:i:s` และแปลงสถานะเป็น boolean
+   - สร้าง [BlogController.php](file:///c:/Users/MASTER/Documents/GitHub/week-15/app/Http/Controllers/Api/BlogController.php) ด้วย flag `--api` รองรับ `index`, `store`, `show`, `update`, `destroy`
+5. **การกำหนด Route ใน `routes/api.php`**:
+   - แยก Public Routes และ Protected Routes (`auth:sanctum`) ตามข้อกำหนด
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🚀 วิธีการทดสอบ API ผ่าน Postman
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### การตั้งค่า Header มาตรฐาน (สำคัญมาก)
+ในทุกคำขอ (Request) แนะนำให้ตั้งค่า Headers ดังนี้:
+- `Accept`: `application/json`
+- `Content-Type`: `application/json`
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+### 1. ทดสอบระบบ Authentication (Public Routes)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+#### 1.1 สมัครสมาชิก (Register)
+* **Method**: `POST`
+* **URL**: `http://127.0.0.1:8000/api/register`
+* **Headers**:
+  * `Accept`: `application/json`
+  * `Content-Type`: `application/json`
+* **Body** (raw -> JSON):
+  ```json
+  {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "password_confirmation": "password123"
+  }
+  ```
+* **Expected Response (Status 201 Created)**:
+  ```json
+  {
+    "status": "success",
+    "message": "ลงทะเบียนสำเร็จ",
+    "user": { ... },
+    "token": "1|abcde..."
+  }
+  ```
 
-### Premium Partners
+#### 1.2 เข้าสู่ระบบ (Login)
+* **Method**: `POST`
+* **URL**: `http://127.0.0.1:8000/api/login`
+* **Headers**:
+  * `Accept`: `application/json`
+  * `Content-Type`: `application/json`
+* **Body** (raw -> JSON):
+  ```json
+  {
+    "email": "john@example.com",
+    "password": "password123"
+  }
+  ```
+* **Expected Response (Status 200 OK)**:
+  * จะได้รับ Plain Text Token สำหรับนำไปใช้ทดสอบ Protected Routes
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+### 2. ทดสอบ Protected Routes (ต้องแนบ Token)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+> [!NOTE]
+> ไปที่แท็บ **Authorization** ใน Postman -> เลือก **Type: Bearer Token** -> นำ Token ที่ได้จาก Login มาวาง
 
-## Code of Conduct
+#### 2.1 ดึงข้อมูลผู้ใช้ปัจจุบัน (Current User)
+* **Method**: `GET`
+* **URL**: `http://127.0.0.1:8000/api/user`
+* **Auth**: Bearer Token
+* **Expected Response (Status 200 OK)**: ข้อมูล User ที่เข้าสู่ระบบ
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+#### 2.2 สร้างบทความใหม่ (Create Blog)
+* **Method**: `POST`
+* **URL**: `http://127.0.0.1:8000/api/blogs`
+* **Auth**: Bearer Token
+* **Body** (raw -> JSON):
+  ```json
+  {
+    "title": "เรียนรู้ RESTful API กับ Laravel 11",
+    "content": "เนื้อหาบทความใหม่สำหรับทดสอบบันทึกผ่าน API",
+    "status": true
+  }
+  ```
+* **Expected Response (Status 201 Created)**
 
-## Security Vulnerabilities
+#### 2.3 แก้ไขบทความ (Update Blog)
+* **Method**: `PUT`
+* **URL**: `http://127.0.0.1:8000/api/blogs/{id}`
+* **Auth**: Bearer Token
+* **Body** (raw -> JSON):
+  ```json
+  {
+    "title": "เรียนรู้ RESTful API อัปเดตใหม่"
+  }
+  ```
+* **Expected Response (Status 200 OK)**
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+#### 2.4 ลบบทความ (Delete Blog)
+* **Method**: `DELETE`
+* **URL**: `http://127.0.0.1:8000/api/blogs/{id}`
+* **Auth**: Bearer Token
+* **Expected Response (Status 200 OK)**
 
-## License
+#### 2.5 ออกจากระบบ (Logout)
+* **Method**: `POST`
+* **URL**: `http://127.0.0.1:8000/api/logout`
+* **Auth**: Bearer Token
+* **Expected Response (Status 200 OK)**: Token ถูกยกเลิก หากนำ Token เดิมไปเรียก `/api/user` อีกจะได้รับ Status `401 Unauthorized`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+### 3. ทดสอบ Public Routes สำหรับ Blog (ไม่ต้องมี Token)
+
+#### 3.1 ดูรายการบทความทั้งหมด
+* **Method**: `GET`
+* **URL**: `http://127.0.0.1:8000/api/blogs`
+* **Expected Response (Status 200 OK)**: ข้อมูลพร้อม Pagination (10 รายการต่อหน้า)
+
+#### 3.2 ดูบทความตาม ID
+* **Method**: `GET`
+* **URL**: `http://127.0.0.1:8000/api/blogs/{id}`
+* **Expected Response (Status 200 OK)**
+
+---
+
+### 4. ทดสอบกรณี Error Check (สำหรับเก็บคะแนนตามเกณฑ์ประเมิน)
+
+* **401 Unauthorized**: ทดสอบเรียก `GET /api/user` โดยไม่แนบ Token หรือใช้ Token หลัง Logout
+* **422 Unprocessable Entity**: ทดสอบเรียก `POST /api/register` โดยเว้นว่างข้อมูลใน Body (Laravel จะตอบกลับรายการ validation error เป็น JSON)
+* **404 Not Found**: ทดสอบเรียก `GET /api/blogs/99999`
